@@ -1,0 +1,102 @@
+[
+  {
+    "id": "CIS-2.1.1",
+    "service": "s3",
+    "check": "s3_public_read",
+    "title": "S3 Bucket Publicly Readable",
+    "severity": "CRITICAL",
+    "description": "S3 bucket allows public read access.",
+    "fix_cli": "aws s3api put-bucket-acl --bucket {resource_name} --acl private",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-2.1.2",
+    "service": "s3",
+    "check": "s3_public_write",
+    "title": "S3 Bucket Publicly Writable",
+    "severity": "CRITICAL",
+    "description": "S3 bucket allows public write access.",
+    "fix_cli": "aws s3api put-bucket-acl --bucket {resource_name} --acl private",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-2.1.3",
+    "service": "s3",
+    "check": "s3_no_encryption",
+    "title": "S3 Bucket Not Encrypted",
+    "severity": "HIGH",
+    "description": "S3 bucket has no default encryption.",
+    "fix_cli": "aws s3api put-bucket-encryption --bucket {resource_name}",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-2.1.4",
+    "service": "s3",
+    "check": "s3_no_versioning",
+    "title": "S3 Bucket Versioning Disabled",
+    "severity": "MEDIUM",
+    "description": "Versioning is off. Deleted files cannot be recovered.",
+    "fix_cli": "aws s3api put-bucket-versioning --bucket {resource_name} --versioning-configuration Status=Enabled",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-1.1.1",
+    "service": "iam",
+    "check": "iam_no_mfa",
+    "title": "IAM User Has No MFA",
+    "severity": "HIGH",
+    "description": "IAM user can log in with just a password.",
+    "fix_cli": "# Enable MFA in AWS Console: IAM -> Users -> {resource_name}",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-1.1.2",
+    "service": "iam",
+    "check": "iam_root_access_keys",
+    "title": "Root Account Has Active Access Keys",
+    "severity": "CRITICAL",
+    "description": "Root has unrestricted access to everything.",
+    "fix_cli": "aws iam delete-access-key --access-key-id {key_id}",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-1.1.3",
+    "service": "iam",
+    "check": "iam_password_policy_weak",
+    "title": "Weak IAM Password Policy",
+    "severity": "MEDIUM",
+    "description": "Weak password policy makes brute-force easier.",
+    "fix_cli": "aws iam update-account-password-policy --minimum-password-length 14",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-4.1.1",
+    "service": "ec2",
+    "check": "sg_open_ssh",
+    "title": "Security Group Open SSH to World",
+    "severity": "CRITICAL",
+    "description": "Port 22 open to 0.0.0.0/0.",
+    "fix_cli": "aws ec2 revoke-security-group-ingress --group-id {resource_name} --protocol tcp --port 22 --cidr 0.0.0.0/0",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-4.1.2",
+    "service": "ec2",
+    "check": "sg_open_rdp",
+    "title": "Security Group Open RDP to World",
+    "severity": "CRITICAL",
+    "description": "Port 3389 open to 0.0.0.0/0.",
+    "fix_cli": "aws ec2 revoke-security-group-ingress --group-id {resource_name} --protocol tcp --port 3389 --cidr 0.0.0.0/0",
+    "fix_terraform": ""
+  },
+  {
+    "id": "CIS-3.1.1",
+    "service": "cloudtrail",
+    "check": "cloudtrail_disabled",
+    "title": "CloudTrail Logging Disabled",
+    "severity": "HIGH",
+    "description": "No audit log exists.",
+    "fix_cli": "aws cloudtrail create-trail --name cloudsentinel-trail --s3-bucket-name your-log-bucket",
+    "fix_terraform": ""
+  }
+]

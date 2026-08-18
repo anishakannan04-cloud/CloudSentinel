@@ -1,0 +1,281 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CloudSentinel</title>
+<style>
+  :root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2236;--border:#1e2d4a;--accent:#3b82f6;--accent2:#06b6d4;--text:#e2e8f0;--muted:#64748b;--critical:#ef4444;--high:#f97316;--medium:#eab308;--low:#22c55e;--resolved:#10b981}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min-height:100vh}
+  header{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid var(--border);background:var(--surface)}
+  .logo{display:flex;align-items:center;gap:.75rem}
+  .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .logo-text{font-size:1.25rem;font-weight:700}.logo-sub{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+  .header-right{display:flex;align-items:center;gap:1rem}
+  .ollama-badge{display:flex;align-items:center;gap:.4rem;font-size:.75rem;padding:.3rem .7rem;border-radius:20px;border:1px solid var(--border)}
+  .dot{width:7px;height:7px;border-radius:50%}.dot.green{background:var(--low);box-shadow:0 0 6px var(--low)}.dot.gray{background:var(--muted)}
+  .scan-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:.6rem 1.4rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.85rem;transition:.2s}
+  .scan-btn:hover{opacity:.85;transform:translateY(-1px)}.scan-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 65px)}
+  aside{border-right:1px solid var(--border);padding:1.5rem 1rem;background:var(--surface)}
+  .risk-ring{text-align:center;margin-bottom:1.5rem}
+  .risk-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem}
+  .ring-wrap{position:relative;display:inline-block}
+  svg.ring{transform:rotate(-90deg)}
+  .ring-score{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+  .ring-score .num{font-size:2rem;font-weight:800}.ring-score .den{font-size:.7rem;color:var(--muted)}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.5rem}
+  .stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.75rem;text-align:center}
+  .stat-card .val{font-size:1.5rem;font-weight:700}.stat-card .lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+  .stat-card.crit .val{color:var(--critical)}.stat-card.high .val{color:var(--high)}.stat-card.med .val{color:var(--medium)}.stat-card.low .val{color:var(--low)}
+  .section-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.75rem}
+  .filters{display:flex;flex-direction:column;gap:.35rem}
+  .pill{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-radius:8px;cursor:pointer;font-size:.8rem;border:1px solid transparent;transition:.15s;background:transparent;color:var(--text);width:100%}
+  .pill:hover{background:var(--surface2)}.pill.active{background:var(--surface2);border-color:var(--border)}
+  .pill-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:.4rem}
+  .pill-count{background:var(--surface);padding:.1rem .4rem;border-radius:10px;font-size:.7rem;color:var(--muted)}
+  main{padding:1.5rem 2rem;overflow-y:auto}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+  .toolbar h2{font-size:1rem;font-weight:600}.last-scan{font-size:.75rem;color:var(--muted)}
+  .tabs{display:flex;gap:.25rem;margin-bottom:1rem}
+  .tab{padding:.4rem .9rem;border-radius:7px;cursor:pointer;font-size:.8rem;color:var(--muted);border:none;background:transparent;transition:.15s}
+  .tab.active{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+  .tab-content{display:none}.tab-content.active{display:block}
+  .findings-list{display:flex;flex-direction:column;gap:.75rem}
+  .finding-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:.2s}
+  .finding-card:hover{border-color:var(--accent)}.finding-card.resolved{opacity:.45}
+  .finding-header{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;cursor:pointer}
+  .sev-badge{font-size:.65rem;font-weight:700;padding:.25rem .6rem;border-radius:5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+  .sev-CRITICAL{background:rgba(239,68,68,.15);color:var(--critical);border:1px solid rgba(239,68,68,.3)}
+  .sev-HIGH{background:rgba(249,115,22,.15);color:var(--high);border:1px solid rgba(249,115,22,.3)}
+  .sev-MEDIUM{background:rgba(234,179,8,.15);color:var(--medium);border:1px solid rgba(234,179,8,.3)}
+  .sev-LOW{background:rgba(34,197,94,.15);color:var(--low);border:1px solid rgba(34,197,94,.3)}
+  .finding-title{flex:1;font-size:.9rem;font-weight:600}.finding-resource{font-size:.75rem;color:var(--muted);font-family:monospace}
+  .finding-service{font-size:.65rem;color:var(--accent2);text-transform:uppercase;letter-spacing:.07em;background:rgba(6,182,212,.1);padding:.2rem .5rem;border-radius:4px}
+  .chevron{color:var(--muted);transition:.2s;font-size:.8rem}.finding-card.open .chevron{transform:rotate(180deg)}
+  .finding-detail{display:none;border-top:1px solid var(--border);padding:1.25rem}.finding-card.open .finding-detail{display:block}
+  .detail-section{margin-bottom:1rem}.detail-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.4rem}
+  .risk-brief{font-size:.85rem;line-height:1.7;background:var(--surface2);padding:.75rem 1rem;border-radius:8px;border-left:3px solid var(--critical)}
+  .impact-box{font-size:.8rem;color:var(--high);background:rgba(249,115,22,.08);padding:.6rem .9rem;border-radius:6px}
+  .priority-box{font-size:.8rem;color:var(--low);background:rgba(34,197,94,.08);padding:.6rem .9rem;border-radius:6px}
+  .code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;font-family:monospace;font-size:.75rem;color:#a5d6ff;overflow-x:auto;white-space:pre;position:relative}
+  .copy-btn{position:absolute;top:.5rem;right:.5rem;background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:.25rem .6rem;border-radius:5px;cursor:pointer;font-size:.65rem}
+  .copy-btn:hover{color:var(--text)}
+  .action-row{display:flex;gap:.75rem;margin-top:1rem;align-items:center}
+  .btn-resolve{background:linear-gradient(135deg,#059669,#10b981);color:#fff;border:none;padding:.55rem 1.2rem;border-radius:7px;font-weight:600;cursor:pointer;font-size:.8rem}
+  .btn-resolve:hover{opacity:.85}
+  .resolved-tag{display:flex;align-items:center;gap:.4rem;color:var(--resolved);font-size:.8rem;font-weight:600}
+  .source-tag{font-size:.7rem;color:var(--muted)}
+  .empty{text-align:center;padding:4rem 2rem;color:var(--muted)}.empty-icon{font-size:3rem;margin-bottom:1rem}.empty p{font-size:.9rem}
+  .loading{text-align:center;padding:3rem}.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .history-bars{display:flex;align-items:flex-end;gap:4px;height:80px;margin-bottom:.5rem}
+  .history-bar{flex:1;border-radius:3px 3px 0 0;min-width:10px;position:relative;cursor:default;transition:.3s}
+  .history-bar:hover::after{content:attr(data-tip);position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:.3rem .6rem;border-radius:5px;font-size:.7rem;white-space:nowrap;color:var(--text);z-index:10}
+  .history-axis{font-size:.65rem;color:var(--muted);text-align:center}
+  #toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;font-size:.8rem;opacity:0;pointer-events:none;transition:.3s;z-index:999}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">&#128737;</div>
+    <div><div class="logo-text">CloudSentinel</div><div class="logo-sub">Cloud Security Posture</div></div>
+  </div>
+  <div class="header-right">
+    <div class="ollama-badge"><div class="dot gray" id="ollama-dot"></div><span id="ollama-label">Checking...</span></div>
+    <button class="scan-btn" id="scan-btn" onclick="runScan()">&#9889; Run Scan</button>
+  </div>
+</header>
+<div class="layout">
+  <aside>
+    <div class="risk-ring">
+      <div class="risk-label">Risk Score</div>
+      <div class="ring-wrap">
+        <svg class="ring" width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="var(--critical)" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="314" id="risk-arc" stroke-dashoffset="314" style="transition:stroke-dashoffset 1s ease"/>
+        </svg>
+        <div class="ring-score"><div class="num" id="risk-num">--</div><div class="den">/100</div></div>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card crit"><div class="val" id="cnt-crit">--</div><div class="lbl">Critical</div></div>
+      <div class="stat-card high"><div class="val" id="cnt-high">--</div><div class="lbl">High</div></div>
+      <div class="stat-card med"><div class="val" id="cnt-med">--</div><div class="lbl">Medium</div></div>
+      <div class="stat-card low"><div class="val" id="cnt-low">--</div><div class="lbl">Low</div></div>
+    </div>
+    <div class="section-label">Filter</div>
+    <div class="filters">
+      <button class="pill active" onclick="setFilter('all')" id="pill-all"><span>All</span><span class="pill-count" id="pc-all">0</span></button>
+      <button class="pill" onclick="setFilter('CRITICAL')" id="pill-CRITICAL"><span><span class="pill-dot" style="background:var(--critical)"></span>Critical</span><span class="pill-count" id="pc-CRITICAL">0</span></button>
+      <button class="pill" onclick="setFilter('HIGH')" id="pill-HIGH"><span><span class="pill-dot" style="background:var(--high)"></span>High</span><span class="pill-count" id="pc-HIGH">0</span></button>
+      <button class="pill" onclick="setFilter('MEDIUM')" id="pill-MEDIUM"><span><span class="pill-dot" style="background:var(--medium)"></span>Medium</span><span class="pill-count" id="pc-MEDIUM">0</span></button>
+      <button class="pill" onclick="setFilter('LOW')" id="pill-LOW"><span><span class="pill-dot" style="background:var(--low)"></span>Low</span><span class="pill-count" id="pc-LOW">0</span></button>
+    </div>
+  </aside>
+  <main>
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('findings',this)">Findings</button>
+      <button class="tab" onclick="showTab('history',this)">Risk History</button>
+    </div>
+    <div class="tab-content active" id="tab-findings">
+      <div class="toolbar"><h2 id="findings-heading">Findings</h2><span class="last-scan" id="last-scan-label"></span></div>
+      <div id="findings-container">
+        <div class="empty"><div class="empty-icon">&#9729;</div><p>No scan yet.<br>Click <strong>Run Scan</strong> to start.</p></div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-history">
+      <div class="toolbar"><h2>Risk Score History</h2></div>
+      <div class="history-bars" id="history-bars"></div>
+      <div class="history-axis">Each bar = one scan - most recent on right</div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+<script>
+const API='';
+let allFindings=[],summary={},resolved=new Set(),scanHistory=[];
+
+async function init(){
+  try{
+    const r=await fetch(`${API}/api/status`);
+    const d=await r.json();
+    setOllama(d.ollama_available);
+  }catch(e){setOllama(false);}
+}
+
+function setOllama(up){
+  document.getElementById('ollama-dot').className=`dot ${up?'green':'gray'}`;
+  document.getElementById('ollama-label').textContent=up?'Ollama Active':'Template Mode';
+}
+
+async function runScan(){
+  const btn=document.getElementById('scan-btn');
+  btn.disabled=true;btn.textContent='Scanning...';
+  document.getElementById('findings-container').innerHTML='<div class="loading"><div class="spinner"></div><p style="color:var(--muted);font-size:.85rem">Scanning cloud resources...</p></div>';
+  try{
+    const r=await fetch(`${API}/api/scan?mock=true`);
+    const d=await r.json();
+    allFindings=d.findings;summary=d.summary;scanHistory=d.scan_history||[];
+    setOllama(d.ollama_used);
+    renderAll();
+    showToast('Scan complete - '+d.findings.length+' findings');
+  }catch(e){
+    document.getElementById('findings-container').innerHTML='<div class="empty"><div class="empty-icon">&#9888;</div><p>Backend not running.<br>Run: python -m uvicorn api.main:app --port 8000</p></div>';
+  }
+  btn.disabled=false;btn.textContent='Run Scan';
+}
+
+function renderAll(){updateSidebar();renderFindings();renderHistory();}
+
+function updateSidebar(){
+  const s=summary,score=s.risk_score||0;
+  document.getElementById('risk-num').textContent=score;
+  const offset=314-(score/100*314);
+  const arc=document.getElementById('risk-arc');
+  arc.style.strokeDashoffset=offset;
+  arc.style.stroke=score>=70?'var(--critical)':score>=40?'var(--high)':'var(--low)';
+  document.getElementById('cnt-crit').textContent=s.critical??'--';
+  document.getElementById('cnt-high').textContent=s.high??'--';
+  document.getElementById('cnt-med').textContent=s.medium??'--';
+  document.getElementById('cnt-low').textContent=s.low??'--';
+  const counts={all:allFindings.length,CRITICAL:s.critical,HIGH:s.high,MEDIUM:s.medium,LOW:s.low};
+  Object.entries(counts).forEach(([k,v])=>{const el=document.getElementById(`pc-${k}`);if(el)el.textContent=v??0;});
+  if(s.scanned_at)document.getElementById('last-scan-label').textContent='Last scan: '+new Date(s.scanned_at).toLocaleTimeString();
+}
+
+let activeFilter='all';
+function setFilter(f){
+  activeFilter=f;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pill-'+f).classList.add('active');
+  renderFindings();
+}
+
+function renderFindings(){
+  const list=activeFilter==='all'?allFindings:allFindings.filter(f=>f.severity===activeFilter);
+  document.getElementById('findings-heading').textContent=list.length+' Finding'+(list.length!==1?'s':'')+(activeFilter!=='all'?' - '+activeFilter:'');
+  if(!list.length){
+    document.getElementById('findings-container').innerHTML='<div class="empty"><div class="empty-icon">&#10003;</div><p>No findings for this filter.</p></div>';
+    return;
+  }
+  document.getElementById('findings-container').innerHTML='<div class="findings-list">'+list.map(cardHTML).join('')+'</div>';
+}
+
+function cardHTML(f){
+  const isRes=resolved.has(f.finding_id);
+  const exp=f.explanation||{};
+  return '<div class="finding-card '+(isRes?'resolved':'')+'" id="card-'+f.finding_id+'">'
+    +'<div class="finding-header" onclick="toggle(\''+f.finding_id+'\')">'
+    +'<span class="sev-badge sev-'+f.severity+'">'+f.severity+'</span>'
+    +'<div style="flex:1"><div class="finding-title">'+f.title+'</div><div class="finding-resource">'+f.resource+'</div></div>'
+    +'<span class="finding-service">'+f.service+'</span>'
+    +(isRes?'<span style="color:var(--resolved);font-size:.75rem">Fixed</span>':'')
+    +'<span class="chevron">&#9660;</span>'
+    +'</div>'
+    +'<div class="finding-detail">'
+    +(exp.risk_brief
+      ?'<div class="detail-section"><div class="detail-label">What This Means</div><div class="risk-brief">'+exp.risk_brief+'</div></div>'
+      +'<div class="detail-section"><div class="detail-label">Business Impact</div><div class="impact-box">'+exp.impact+'</div></div>'
+      +'<div class="detail-section"><div class="detail-label">Immediate Action</div><div class="priority-box">'+exp.priority+'</div></div>'
+      :'<div class="detail-section"><div class="risk-brief">'+f.description+'</div></div>')
+    +'<div class="detail-section"><div class="detail-label">Fix - AWS CLI</div>'
+    +'<div class="code-block"><button class="copy-btn" onclick="copy(\''+f.finding_id+'-cli\')">Copy</button><span id="'+f.finding_id+'-cli">'+esc(f.fix_cli)+'</span></div></div>'
+    +'<div class="detail-section"><div class="detail-label">Fix - Terraform</div>'
+    +'<div class="code-block"><button class="copy-btn" onclick="copy(\''+f.finding_id+'-tf\')">Copy</button><span id="'+f.finding_id+'-tf">'+esc(f.fix_terraform)+'</span></div></div>'
+    +'<div class="action-row">'
+    +(isRes
+      ?'<div class="resolved-tag">Resolved</div><button class="btn-resolve" style="background:var(--muted)" onclick="reopen(\''+f.finding_id+'\')">Reopen (Drift)</button>'
+      :'<button class="btn-resolve" onclick="resolve(\''+f.finding_id+'\')">Mark Resolved</button>')
+    +'<span class="source-tag">'+(exp.source==='ollama'?'Ollama':'Template')+'</span>'
+    +'</div></div></div>';
+}
+
+function toggle(id){document.getElementById('card-'+id).classList.toggle('open');}
+
+async function resolve(id){
+  resolved.add(id);
+  await fetch(API+'/api/fix/'+id,{method:'POST'});
+  const d=await(await fetch(API+'/api/findings')).json();
+  allFindings=d.findings;summary=d.summary;
+  renderAll();showToast('Marked as resolved');
+}
+
+async function reopen(id){
+  resolved.delete(id);
+  await fetch(API+'/api/fix/'+id+'/reopen',{method:'POST'});
+  const d=await(await fetch(API+'/api/findings')).json();
+  allFindings=d.findings;summary=d.summary;
+  renderAll();showToast('Drift detected - reopened');
+}
+
+function renderHistory(){
+  const c=document.getElementById('history-bars');
+  if(!scanHistory.length){c.innerHTML='<p style="color:var(--muted);font-size:.8rem">Run a few scans to see trend.</p>';return;}
+  const max=Math.max(...scanHistory.map(h=>h.risk_score),10);
+  c.innerHTML=scanHistory.map(h=>{
+    const pct=Math.max(5,(h.risk_score/max)*100);
+    const col=h.risk_score>=70?'var(--critical)':h.risk_score>=40?'var(--high)':'var(--low)';
+    return '<div class="history-bar" style="height:'+pct+'%;background:'+col+'" data-tip="Score: '+h.risk_score+' | '+new Date(h.scanned_at).toLocaleTimeString()+'"></div>';
+  }).join('');
+}
+
+function showTab(name,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function copy(id){navigator.clipboard.writeText(document.getElementById(id)?.textContent||'');showToast('Copied!');}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+init();
+</script>
+</body>
+</html>
